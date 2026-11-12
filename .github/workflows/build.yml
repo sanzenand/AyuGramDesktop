@@ -1,0 +1,53 @@
+name: Build AyuGram Desktop with Plugin SDK
+
+on:
+  push:
+    branches: [ dev ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Windows x64 Release
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Set up MSVC Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+          vsversion: '2022'
+
+      - name: Prepare third-party libraries
+        shell: cmd
+        run: |
+          Telegram\build\prepare\win.bat
+
+      - name: Configure CMake
+        shell: cmd
+        run: |
+          cd Telegram
+          configure.bat x64 -D TDESKTOP_API_ID=2040 -D TDESKTOP_API_HASH=b18441a1ff607e10a989891a5462e627
+
+      - name: Build AyuGram
+        shell: cmd
+        run: |
+          cmake --build out --config Release --target Telegram --parallel %NUMBER_OF_PROCESSORS%
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AyuGram-Desktop-x64
+          path: |
+            out/Release/AyuGram.exe
+          if-no-files-found: warn

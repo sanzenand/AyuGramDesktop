@@ -108,6 +108,8 @@ PRIVATE
 )
 
 set(ayugram_files
+        ayu/features/plugins/plugin_manager.cpp
+        ayu/features/plugins/plugin_manager.h
         ayu/ayu_worker.cpp
         ayu/ayu_worker.h
         ayu/ayu_url_handlers.cpp
