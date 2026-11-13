@@ -11,6 +11,13 @@ jobs:
     runs-on: windows-2022
 
     steps:
+      - name: Increase Windows Pagefile
+        uses: al-cheb/configure-pagefile-action@v1.4
+        with:
+          minimum-size: 32GB
+          maximum-size: 32GB
+          disk-root: "C:"
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -26,12 +33,26 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
+          toolset: '14.44'
           vsversion: '2022'
 
       - name: Prepare third-party libraries
         shell: cmd
         run: |
           Telegram\build\prepare\win.bat
+
+      - name: Patch CMake PCH and Heap Flags
+        shell: pwsh
+        run: |
+          $opts = "cmake\options_win.cmake"
+          if (Test-Path $opts) {
+            $c = Get-Content $opts -Raw
+            if ($c -notmatch "/FS") {
+              $c = $c -replace "/MP\s+# Enable multi process build\.", "/MP`n        /FS`n        /Zm200"
+              Set-Content $opts $c -Encoding utf8
+              Write-Host "Patched $opts successfully"
+            }
+          }
 
       - name: Configure CMake
         shell: cmd
@@ -42,7 +63,7 @@ jobs:
       - name: Build AyuGram
         shell: cmd
         run: |
-          cmake --build out --config Release --target Telegram --parallel %NUMBER_OF_PROCESSORS%
+          cmake --build out --config Release --target Telegram --parallel 2
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
